@@ -325,7 +325,7 @@
     overlay.setAttribute("aria-hidden", "false");
 
     // reset all reveal animation state
-    revealCard.classList.remove("in");
+    revealCard.classList.remove("in", "suspense");
     winnerNameEl.classList.remove("slow-in");
     goldBag.classList.remove("drop");
     lightRays.classList.remove("on");
@@ -335,29 +335,31 @@
     // eslint-disable-next-line no-unused-expressions
     overlay.offsetHeight;
 
-    // Build-up: rays glow in, the money shower starts, the card fades in with
-    // the eyebrow, and the name begins its slow materialise.
+    // Phase A — suspense build-up. The NAME STAYS HIDDEN: rays glow in, the
+    // coin shower starts, and the drumroll pulses. No result shown yet.
     lightRays.classList.add("on");
     revealCard.classList.add("in");
+    revealCard.classList.add("suspense");
     startCelebration();
+    stageStatus.textContent = "And the winner is…";
 
-    // slight beat, then the name reveals slowly (~1.9s)
-    setTimeout(function () { winnerNameEl.classList.add("slow-in"); }, 250);
-
-    // Payoff — once the name has fully materialised
-    var PAYOFF = 250 + 1900;
+    // Phase B — climax. Only now does the name reveal (slowly), together with
+    // the burst, the fireworks, and the gold bag.
+    var BUILD = 1500;
     setTimeout(function () {
+      revealCard.classList.remove("suspense");
       screenFlash.classList.add("go");
       burstRing.classList.add("go");
       burstRing2.classList.add("go");
-      goldBag.classList.add("drop");
+      winnerNameEl.classList.add("slow-in");
       fireworkBurst();
       setTimeout(fireworkBurst, 450);
       setTimeout(fireworkBurst, 950);
       setTimeout(fireworkBurst, 1500);
-    }, PAYOFF);
-
-    stageStatus.textContent = name + " wins the draw.";
+      // the bag lands once the name is well underway
+      setTimeout(function () { goldBag.classList.add("drop"); }, 650);
+      stageStatus.textContent = name + " wins the draw.";
+    }, BUILD);
   }
 
   againBtn.addEventListener("click", function () {
