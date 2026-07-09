@@ -21,6 +21,10 @@
   var pickBtn = document.getElementById("pick-btn");
   var stageStatus = document.getElementById("stage-status");
 
+  var boxLid = document.getElementById("box-lid");
+  var boxGlow = document.getElementById("box-glow");
+  var boxSpotlight = document.getElementById("box-spotlight");
+
   var overlay = document.getElementById("reveal-overlay");
   var revealCard = document.getElementById("reveal-card");
   var winnerNameEl = document.getElementById("winner-name");
@@ -29,6 +33,10 @@
   var againBtn = document.getElementById("again-btn");
   var moneyLayer = document.getElementById("money-layer");
   var canvas = document.getElementById("confetti-canvas");
+  var lightRays = document.getElementById("light-rays");
+  var burstRing = document.getElementById("burst-ring");
+  var burstRing2 = document.getElementById("burst-ring-2");
+  var screenFlash = document.getElementById("screen-flash");
 
   // ---- Helpers ----
   function esc(s) {
@@ -60,7 +68,7 @@
       listEl.appendChild(li);
     });
 
-    countLabel.textContent = names.length + (names.length === 1 ? " member" : " members");
+    countLabel.textContent = names.length + (names.length === 1 ? " entrant" : " entrants");
     clearBtn.hidden = names.length === 0;
   }
 
@@ -75,19 +83,19 @@
   function updateControls() {
     var enough = names.length >= 2;
     entryHint.textContent = enough
-      ? "Looking good! Head to the draw and drop the chits in."
-      : "Add at least 2 members to start the draw.";
+      ? "Ready. Seal the box to begin."
+      : "Add at least 2 entrants to start the draw.";
 
     fillBtn.disabled = !enough || busy;
     pickBtn.disabled = !enough || !chitsInBox || busy;
 
     if (busy) return;
     if (!enough) {
-      stageStatus.textContent = "Add members to begin.";
+      stageStatus.textContent = "Add entrants to begin.";
     } else if (!chitsInBox) {
-      stageStatus.textContent = "Ready — drop the chits into the box.";
+      stageStatus.textContent = "Ready — seal the box to begin.";
     } else {
-      stageStatus.textContent = names.length + " chits are in the box. Pick a winner!";
+      stageStatus.textContent = names.length + " chits sealed in the box. Draw a winner.";
     }
   }
 
@@ -96,7 +104,7 @@
     e.preventDefault();
     var val = input.value.trim();
     if (!val) return;
-    if (names.length >= 40) { flashInput("Whoa, that's a big party!"); return; }
+    if (names.length >= 40) { flashInput("That's the maximum number of entrants"); return; }
     if (names.some(function (n) { return n.toLowerCase() === val.toLowerCase(); })) {
       flashInput("That name is already added");
       return;
@@ -111,7 +119,7 @@
     var prev = input.placeholder;
     input.value = "";
     input.placeholder = msg;
-    input.style.borderColor = "#ff5da2";
+    input.style.borderColor = "#cb9a4f";
     setTimeout(function () {
       input.placeholder = prev;
       input.style.borderColor = "";
@@ -130,7 +138,7 @@
     chitsHeap.innerHTML = "";
     chitsInBox = false;
     updateControls();
-    stageStatus.textContent = "Writing names & folding chits…";
+    stageStatus.textContent = "Writing the names & folding the chits…";
     fillBtn.disabled = true;
     pickBtn.disabled = true;
 
@@ -142,7 +150,7 @@
         chitsInBox = true;
         busy = false;
         updateControls();
-        stageStatus.textContent = "All " + names.length + " chits are in! Hit Pick a winner.";
+        stageStatus.textContent = "All " + names.length + " chits sealed. Draw a winner.";
         return;
       }
       flyChit(names[i], boxRect, function () {
@@ -154,117 +162,169 @@
     dropNext();
   });
 
-  // Animate one folded chit flying from the top-center into the box.
+  // Animate one folded chit: appear at the pen, fold, then arc into the box.
   function flyChit(name, boxRect, done) {
     var flyer = document.createElement("div");
     flyer.className = "chit-flyer";
     flyer.innerHTML = '<div class="fold"></div>' + esc(initials(name) || "•");
 
-    // Start above the box, roughly centered on screen top.
-    var startX = boxRect.left + boxRect.width / 2 - 30;
-    var startY = Math.max(60, boxRect.top - 170);
-    var endX = boxRect.left + boxRect.width / 2 - 30 + (Math.random() * 40 - 20);
-    var endY = boxRect.top + boxRect.height - 60 - Math.random() * 20;
+    // Start above the box; arc in via a mid control point (fake bezier in 2 hops).
+    var startX = boxRect.left + boxRect.width / 2 - 30 + (Math.random() * 90 - 45);
+    var startY = Math.max(50, boxRect.top - 190);
+    var midX = boxRect.left + boxRect.width / 2 - 30 + (Math.random() * 30 - 15);
+    var midY = boxRect.top - 60;
+    var endX = boxRect.left + boxRect.width / 2 - 30 + (Math.random() * 50 - 25);
+    var endY = boxRect.top + boxRect.height - 58 - Math.random() * 22;
 
     flyer.style.left = startX + "px";
     flyer.style.top = startY + "px";
-    flyer.style.transform = "rotate(" + (Math.random() * 30 - 15) + "deg) scale(0.7)";
+    flyer.style.transform = "rotate(" + (Math.random() * 20 - 10) + "deg) scale(0.4)";
+    flyer.style.opacity = "0";
     flyer.style.transition = "none";
     document.body.appendChild(flyer);
-
-    // Force reflow so the transition applies.
     // eslint-disable-next-line no-unused-expressions
     flyer.offsetHeight;
 
-    flyer.style.transition = "left .5s cubic-bezier(.5,.05,.5,1), top .5s cubic-bezier(.4,.6,.5,1), transform .5s ease";
-    flyer.style.left = endX + "px";
-    flyer.style.top = endY + "px";
-    flyer.style.transform = "rotate(" + (Math.random() * 60 - 30) + "deg) scale(0.5)";
+    // Hop 1: pen appears & "writes" (grow to full size, folding look)
+    flyer.style.transition = "left .28s ease-out, top .28s ease-out, transform .28s ease-out, opacity .18s ease";
+    flyer.style.opacity = "1";
+    flyer.style.left = midX + "px";
+    flyer.style.top = midY + "px";
+    flyer.style.transform = "rotate(" + (Math.random() * 16 - 8) + "deg) scale(1)";
+
+    // Hop 2: drop into the box, shrinking & spinning as it falls
+    setTimeout(function () {
+      flyer.style.transition = "left .34s ease-in, top .34s cubic-bezier(.5,0,.9,.5), transform .34s ease-in";
+      flyer.style.left = endX + "px";
+      flyer.style.top = endY + "px";
+      flyer.style.transform = "rotate(" + (Math.random() * 90 - 45) + "deg) scale(0.5)";
+    }, 300);
 
     setTimeout(function () {
+      spawnPuff(endX + 26, endY + 24);
       flyer.remove();
       done();
-    }, 520);
+    }, 660);
   }
 
-  // Add a small static folded chit resting inside the box.
+  // A small dust puff at a screen coordinate.
+  function spawnPuff(x, y) {
+    var p = document.createElement("div");
+    p.className = "puff";
+    p.style.left = (x - 5) + "px";
+    p.style.top = (y - 5) + "px";
+    document.body.appendChild(p);
+    setTimeout(function () { p.remove(); }, 520);
+  }
+
+  // Add a folded chit resting inside the box, with a bounce-settle.
   function addRestingChit() {
     var chit = document.createElement("div");
-    chit.className = "chit";
+    chit.className = "chit landing";
     var heap = chitsHeap.getBoundingClientRect();
     var maxX = Math.max(4, heap.width - 50);
     var maxY = Math.max(4, heap.height - 34);
+    var rot = (Math.random() * 70 - 35);
+    chit.style.setProperty("--r", rot + "deg");
     chit.style.left = Math.random() * maxX + "px";
     chit.style.top = (maxY - Math.random() * Math.min(maxY, 60)) + "px";
-    chit.style.transform = "rotate(" + (Math.random() * 70 - 35) + "deg)";
+    chit.style.transform = "rotate(" + rot + "deg)";
     chitsHeap.appendChild(chit);
+    setTimeout(function () { chit.classList.remove("landing"); }, 360);
   }
 
-  // ---- Pick: shake, then reveal ----
+  // ---- Pick: charge → shake → open lid → draw → unfold → reveal ----
   pickBtn.addEventListener("click", function () {
     if (busy || !chitsInBox || names.length < 2) return;
     busy = true;
     updateControls();
     fillBtn.disabled = true;
     pickBtn.disabled = true;
-    stageStatus.textContent = "Shaking the box… 🥁";
 
-    glassBox.classList.add("shaking");
-    // scramble resting chits a bit while shaking
-    var scramble = setInterval(jiggleRestingChits, 120);
+    var winner = names[Math.floor(Math.random() * names.length)];
+
+    // Phase 1 — charge up (anticipation)
+    stageStatus.textContent = "Steady… the draw begins.";
+    boxSpotlight.classList.add("on");
+    glassBox.classList.add("charging");
 
     setTimeout(function () {
-      clearInterval(scramble);
-      glassBox.classList.remove("shaking");
+      glassBox.classList.remove("charging");
 
-      var winner = names[Math.floor(Math.random() * names.length)];
+      // Phase 2 — intense shake with tumbling chits
+      stageStatus.textContent = "Shaking the box…";
+      glassBox.classList.add("shaking");
+      var scramble = setInterval(jiggleRestingChits, 90);
 
-      // pull one chit out visually
-      pullOutChit(glassBox.getBoundingClientRect(), winner, function () {
-        showWinner(winner);
-      });
-    }, 1700);
+      setTimeout(function () {
+        clearInterval(scramble);
+        glassBox.classList.remove("shaking");
+        resetRestingChits();
+
+        // Phase 3 — lid swings open
+        stageStatus.textContent = "Opening the box…";
+        glassBox.classList.add("open");
+
+        setTimeout(function () {
+          // Phase 4 — a chit rises, unfolds, then bursts into the reveal
+          drawChit(winner, function () {
+            showWinner(winner);
+          });
+        }, 520);
+      }, 1900);
+    }, 900);
   });
 
   function jiggleRestingChits() {
     var chits = chitsHeap.querySelectorAll(".chit");
     chits.forEach(function (c) {
-      c.style.transform = "rotate(" + (Math.random() * 80 - 40) + "deg) translate(" +
-        (Math.random() * 6 - 3) + "px," + (Math.random() * 6 - 3) + "px)";
+      c.style.transform = "rotate(" + (Math.random() * 120 - 60) + "deg) translate(" +
+        (Math.random() * 14 - 7) + "px," + (Math.random() * 14 - 7) + "px)";
     });
   }
 
-  // Animate a chit rising out of the box toward center screen.
-  function pullOutChit(boxRect, name, done) {
-    stageStatus.textContent = "And the chit is… ✨";
-    var flyer = document.createElement("div");
-    flyer.className = "chit-flyer";
-    flyer.style.width = "80px";
-    flyer.style.height = "52px";
-    flyer.style.fontSize = "0.7rem";
-    flyer.innerHTML = '<div class="fold"></div>' + esc(initials(name) || "•");
+  function resetRestingChits() {
+    var chits = chitsHeap.querySelectorAll(".chit");
+    chits.forEach(function (c) {
+      var r = c.style.getPropertyValue("--r") || "0deg";
+      c.style.transform = "rotate(" + r + ")";
+    });
+  }
 
-    var startX = boxRect.left + boxRect.width / 2 - 40;
-    var startY = boxRect.top + 20;
-    flyer.style.left = startX + "px";
-    flyer.style.top = startY + "px";
-    flyer.style.transform = "scale(0.5) rotate(-8deg)";
-    flyer.style.transition = "none";
-    document.body.appendChild(flyer);
+  // Phase 4: a chit rises from the open box, holds, unfolds to show the name,
+  // then blasts outward — handing off to the celebration.
+  function drawChit(name, done) {
+    stageStatus.textContent = "Drawing a chit…";
+
+    var chit = document.createElement("div");
+    chit.className = "draw-chit";
+    chit.innerHTML =
+      '<div class="dc-fold"></div>' +
+      '<div class="dc-label">The winner is</div>' +
+      '<div class="dc-name">' + esc(name) + "</div>";
+    document.body.appendChild(chit);
     // eslint-disable-next-line no-unused-expressions
-    flyer.offsetHeight;
+    chit.offsetHeight;
 
-    flyer.style.transition = "left .7s ease, top .7s cubic-bezier(.2,.8,.3,1), transform .7s ease";
-    flyer.style.left = (window.innerWidth / 2 - 40) + "px";
-    flyer.style.top = (window.innerHeight / 2 - 26) + "px";
-    flyer.style.transform = "scale(1.6) rotate(6deg)";
+    // rise & hover (folded — only initials-ish look, name hidden by fold line)
+    chit.classList.add("rising");
 
     setTimeout(function () {
-      flyer.style.transition = "transform .3s ease, opacity .3s ease";
-      flyer.style.opacity = "0";
-      flyer.style.transform = "scale(2.4) rotate(0deg)";
-      setTimeout(function () { flyer.remove(); done(); }, 260);
-    }, 760);
+      // suspense beat, then unfold to reveal the written name
+      stageStatus.textContent = "And the name is…";
+      chit.classList.remove("rising");
+      chit.classList.add("unfold");
+    }, 1050);
+
+    setTimeout(function () {
+      // blast the chit outward and hand off to the big reveal
+      boxSpotlight.classList.remove("on");
+      glassBox.classList.remove("open");
+      chit.classList.remove("unfold");
+      chit.classList.add("blast");
+      done();
+      setTimeout(function () { chit.remove(); }, 420);
+    }, 1050 + 900);
   }
 
   // ---- Winner reveal + celebration ----
@@ -275,27 +335,47 @@
     overlay.classList.add("show");
     overlay.setAttribute("aria-hidden", "false");
 
-    // reset animation classes
+    // reset all reveal animation state
     revealCard.classList.remove("in");
     goldBag.classList.remove("drop");
+    lightRays.classList.remove("on");
+    burstRing.classList.remove("go");
+    burstRing2.classList.remove("go");
+    screenFlash.classList.remove("go");
     // eslint-disable-next-line no-unused-expressions
-    revealCard.offsetHeight;
+    overlay.offsetHeight;
+
+    // Bang — flash, rays, rings and the name punch in together
+    screenFlash.classList.add("go");
+    lightRays.classList.add("on");
+    burstRing.classList.add("go");
+    burstRing2.classList.add("go");
     revealCard.classList.add("in");
 
     startConfetti();
+    fireworkBurst();
     startMoneyShower();
 
-    // Drop the gold bag slightly after the card appears.
-    setTimeout(function () { goldBag.classList.add("drop"); }, 450);
+    // A couple of follow-up firework bursts for drama
+    setTimeout(fireworkBurst, 500);
+    setTimeout(fireworkBurst, 1000);
 
-    stageStatus.textContent = "🎉 " + name + " won the draw!";
+    // Gold bag slams down after the name lands
+    setTimeout(function () { goldBag.classList.add("drop"); }, 520);
+
+    stageStatus.textContent = name + " wins the draw.";
   }
 
   againBtn.addEventListener("click", function () {
     overlay.classList.remove("show");
     overlay.setAttribute("aria-hidden", "true");
+    lightRays.classList.remove("on");
     stopConfetti();
     moneyLayer.innerHTML = "";
+    // reset box to its ready state
+    glassBox.classList.remove("open", "charging", "shaking");
+    boxSpotlight.classList.remove("on");
+    resetRestingChits();
     busy = false;
     // keep chits in box so user can pick again immediately
     updateControls();
@@ -304,8 +384,8 @@
   // ---- Money shower (emoji rain) ----
   function startMoneyShower() {
     moneyLayer.innerHTML = "";
-    var emojis = ["💵", "💰", "🪙", "💸", "🤑", "💴"];
-    var total = 46;
+    var emojis = ["💵", "💰", "🪙", "💸", "💴", "💷"];
+    var total = 54;
     for (var k = 0; k < total; k++) {
       (function (k) {
         setTimeout(function () {
@@ -324,11 +404,13 @@
     }
   }
 
-  // ---- Confetti (canvas) ----
+  // ---- Confetti + fireworks (canvas) ----
   var confettiRunning = false;
   var confettiParticles = [];
+  var sparks = [];               // firework spark particles (gravity + fade)
   var confettiRaf = null;
   var ctx = canvas.getContext("2d");
+  var PALETTE = ["#e7cd86", "#cb9a4f", "#9a7526", "#ece7db", "#c9b787", "#f5ecd0"];
 
   function sizeCanvas() {
     canvas.width = window.innerWidth;
@@ -339,13 +421,13 @@
   function startConfetti() {
     sizeCanvas();
     confettiParticles = [];
-    var colors = ["#ff5da2", "#7b4dff", "#f6c445", "#4de0c9", "#ff8a3d", "#ffffff"];
-    for (var i = 0; i < 160; i++) {
+    sparks = [];
+    for (var i = 0; i < 170; i++) {
       confettiParticles.push({
         x: Math.random() * canvas.width,
         y: Math.random() * -canvas.height,
         r: 4 + Math.random() * 6,
-        c: colors[Math.floor(Math.random() * colors.length)],
+        c: PALETTE[Math.floor(Math.random() * PALETTE.length)],
         vy: 2 + Math.random() * 4,
         vx: -1.5 + Math.random() * 3,
         rot: Math.random() * Math.PI,
@@ -358,8 +440,34 @@
     }
   }
 
+  // Emit a radial burst of sparks from a random point in the upper area.
+  function fireworkBurst() {
+    if (!overlay.classList.contains("show")) return;
+    sizeCanvas();
+    var cx = canvas.width * (0.2 + Math.random() * 0.6);
+    var cy = canvas.height * (0.15 + Math.random() * 0.3);
+    var hue = PALETTE[Math.floor(Math.random() * PALETTE.length)];
+    var n = 46;
+    for (var i = 0; i < n; i++) {
+      var ang = (Math.PI * 2 * i) / n + Math.random() * 0.15;
+      var speed = 3 + Math.random() * 5;
+      sparks.push({
+        x: cx, y: cy,
+        vx: Math.cos(ang) * speed,
+        vy: Math.sin(ang) * speed,
+        c: hue,
+        life: 1,
+        decay: 0.012 + Math.random() * 0.02,
+        size: 2 + Math.random() * 2
+      });
+    }
+    if (!confettiRunning) { confettiRunning = true; loopConfetti(); }
+  }
+
   function loopConfetti() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // falling confetti
     confettiParticles.forEach(function (p) {
       p.y += p.vy;
       p.x += p.vx;
@@ -375,12 +483,33 @@
       ctx.fillRect(-p.r / 2, -p.r / 2, p.r, p.r * 0.6);
       ctx.restore();
     });
+
+    // firework sparks (gravity + fade)
+    for (var i = sparks.length - 1; i >= 0; i--) {
+      var s = sparks[i];
+      s.x += s.vx;
+      s.y += s.vy;
+      s.vy += 0.06;       // gravity
+      s.vx *= 0.99;
+      s.life -= s.decay;
+      if (s.life <= 0) { sparks.splice(i, 1); continue; }
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, s.life);
+      ctx.fillStyle = s.c;
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
     if (confettiRunning) confettiRaf = requestAnimationFrame(loopConfetti);
   }
 
   function stopConfetti() {
     confettiRunning = false;
     if (confettiRaf) cancelAnimationFrame(confettiRaf);
+    confettiParticles = [];
+    sparks = [];
     ctx.clearRect(0, 0, canvas.width, canvas.height);
   }
 
