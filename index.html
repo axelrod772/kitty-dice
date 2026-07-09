@@ -14,14 +14,15 @@
   </div>
 
   <header class="app-header">
-    <h1>🎀 Kitty Party Picker</h1>
-    <p class="tagline">Add your members, drop the chits, and let luck decide the lucky winner!</p>
+    <div class="crest" aria-hidden="true">◆</div>
+    <h1>The Lucky Draw</h1>
+    <p class="tagline">Enter the names, seal them in the box, and let chance name the winner.</p>
   </header>
 
   <main class="layout">
     <!-- Left: Add candidates -->
     <section class="panel entry-panel">
-      <h2><span class="step-num">1</span> Add Members</h2>
+      <h2><span class="step-num">1</span> Add Entrants</h2>
 
       <form id="add-form" class="add-form" autocomplete="off">
         <input
@@ -31,18 +32,18 @@
           maxlength="24"
           aria-label="Candidate name"
         />
-        <button type="submit" class="btn btn-add" id="add-btn">＋ Add</button>
+        <button type="submit" class="btn btn-add" id="add-btn">Add</button>
       </form>
 
       <div class="names-header">
-        <span id="count-label">0 members</span>
+        <span id="count-label">0 entrants</span>
         <button type="button" class="link-btn" id="clear-btn" hidden>Clear all</button>
       </div>
 
       <ul id="names-list" class="names-list" aria-live="polite"></ul>
 
       <div class="entry-hint" id="entry-hint">
-        Add at least 2 members to start the draw.
+        Add at least 2 entrants to start the draw.
       </div>
     </section>
 
@@ -51,34 +52,40 @@
       <h2><span class="step-num">2</span> The Lucky Draw</h2>
 
       <div class="box-wrap">
+        <div class="box-spotlight" id="box-spotlight"></div>
         <!-- Transparent box -->
         <div class="glass-box" id="glass-box" aria-label="Transparent box of chits">
-          <div class="box-lid"></div>
+          <div class="box-lid" id="box-lid"></div>
           <div class="chits-heap" id="chits-heap"></div>
           <div class="box-shine"></div>
           <div class="box-front"></div>
+          <div class="box-glow" id="box-glow"></div>
         </div>
         <div class="box-shadow"></div>
       </div>
 
       <div class="controls">
         <button type="button" class="btn btn-fill" id="fill-btn" disabled>
-          📝 Drop chits in box
+          Seal the box
         </button>
         <button type="button" class="btn btn-pick" id="pick-btn" disabled>
-          🎲 Pick a winner!
+          Draw a winner
         </button>
       </div>
 
-      <p class="stage-status" id="stage-status">Add members to begin.</p>
+      <p class="stage-status" id="stage-status">Add entrants to begin.</p>
     </section>
   </main>
 
   <!-- Winner reveal overlay -->
   <div class="reveal-overlay" id="reveal-overlay" aria-hidden="true">
+    <div class="light-rays" id="light-rays"></div>
+    <div class="burst-ring" id="burst-ring"></div>
+    <div class="burst-ring burst-ring-2" id="burst-ring-2"></div>
+    <div class="screen-flash" id="screen-flash"></div>
     <canvas id="confetti-canvas"></canvas>
     <div class="reveal-card" id="reveal-card">
-      <div class="reveal-eyebrow">🎊 The lucky winner is 🎊</div>
+      <div class="reveal-eyebrow">The winner is</div>
       <div class="winner-name" id="winner-name">—</div>
       <div class="gold-bag" id="gold-bag">
         <div class="bag-body">
@@ -91,13 +98,13 @@
           <span class="coin"></span><span class="coin"></span>
         </div>
       </div>
-      <button type="button" class="btn btn-again" id="again-btn">Draw again 🔄</button>
+      <button type="button" class="btn btn-again" id="again-btn">Draw again</button>
     </div>
   </div>
 
   <div class="money-layer" id="money-layer" aria-hidden="true"></div>
 
-  <footer class="app-footer">Made with 💖 for kitty parties</footer>
+  <footer class="app-footer">A refined way to let chance decide</footer>
 
   <script src="app.js"></script>
 </body>
