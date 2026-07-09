@@ -3,26 +3,46 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Kitty Party Picker 🎉</title>
+<title>The Lucky Draw</title>
 <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <div class="bg-decor" aria-hidden="true">
-    <span class="blob blob-1"></span>
-    <span class="blob blob-2"></span>
-    <span class="blob blob-3"></span>
+    <span class="grid-glow"></span>
+    <span class="vignette"></span>
   </div>
 
   <header class="app-header">
-    <div class="crest" aria-hidden="true">◆</div>
-    <h1>The Lucky Draw</h1>
-    <p class="tagline">Enter the names, seal them in the box, and let chance name the winner.</p>
+    <div class="brand">
+      <svg class="brand-mark" viewBox="0 0 40 40" aria-hidden="true">
+        <circle cx="20" cy="20" r="18" fill="none" stroke="url(#bm)" stroke-width="1.5"/>
+        <circle cx="20" cy="20" r="13" fill="none" stroke="url(#bm)" stroke-width="1"/>
+        <text x="20" y="26" text-anchor="middle" font-family="Georgia, serif"
+              font-size="15" fill="url(#bm)">₹</text>
+        <defs>
+          <linearGradient id="bm" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#e7cd86"/>
+            <stop offset="1" stop-color="#a9812f"/>
+          </linearGradient>
+        </defs>
+      </svg>
+      <div class="brand-text">
+        <span class="brand-name">The Lucky Draw</span>
+        <span class="brand-sub">Random winner selector</span>
+      </div>
+    </div>
   </header>
 
   <main class="layout">
-    <!-- Left: Add candidates -->
+    <!-- Left: Add entrants -->
     <section class="panel entry-panel">
-      <h2><span class="step-num">1</span> Add Entrants</h2>
+      <div class="panel-head">
+        <span class="step-num">1</span>
+        <div>
+          <h2>Entrants</h2>
+          <p class="panel-hint">Everyone in the running for the draw.</p>
+        </div>
+      </div>
 
       <form id="add-form" class="add-form" autocomplete="off">
         <input
@@ -30,9 +50,9 @@
           type="text"
           placeholder="Enter a name…"
           maxlength="24"
-          aria-label="Candidate name"
+          aria-label="Entrant name"
         />
-        <button type="submit" class="btn btn-add" id="add-btn">Add</button>
+        <button type="submit" class="btn btn-primary" id="add-btn">Add</button>
       </form>
 
       <div class="names-header">
@@ -42,18 +62,24 @@
 
       <ul id="names-list" class="names-list" aria-live="polite"></ul>
 
-      <div class="entry-hint" id="entry-hint">
-        Add at least 2 entrants to start the draw.
+      <div class="empty-state" id="empty-state">
+        <span class="empty-mark">＋</span>
+        No entrants yet. Add at least two to begin.
       </div>
     </section>
 
     <!-- Right: The box + drawing -->
     <section class="panel stage-panel">
-      <h2><span class="step-num">2</span> The Lucky Draw</h2>
+      <div class="panel-head">
+        <span class="step-num">2</span>
+        <div>
+          <h2>The Draw</h2>
+          <p class="panel-hint">Seal every name in the box, then draw one at random.</p>
+        </div>
+      </div>
 
       <div class="box-wrap">
         <div class="box-spotlight" id="box-spotlight"></div>
-        <!-- Transparent box -->
         <div class="glass-box" id="glass-box" aria-label="Transparent box of chits">
           <div class="box-lid" id="box-lid"></div>
           <div class="chits-heap" id="chits-heap"></div>
@@ -65,10 +91,10 @@
       </div>
 
       <div class="controls">
-        <button type="button" class="btn btn-fill" id="fill-btn" disabled>
+        <button type="button" class="btn btn-ghost" id="fill-btn" disabled>
           Seal the box
         </button>
-        <button type="button" class="btn btn-pick" id="pick-btn" disabled>
+        <button type="button" class="btn btn-gold" id="pick-btn" disabled>
           Draw a winner
         </button>
       </div>
@@ -79,30 +105,61 @@
 
   <!-- Winner reveal overlay -->
   <div class="reveal-overlay" id="reveal-overlay" aria-hidden="true">
-    <div class="light-rays" id="light-rays"></div>
+    <div class="reveal-rays" id="light-rays"></div>
+    <canvas id="confetti-canvas"></canvas>
     <div class="burst-ring" id="burst-ring"></div>
     <div class="burst-ring burst-ring-2" id="burst-ring-2"></div>
     <div class="screen-flash" id="screen-flash"></div>
-    <canvas id="confetti-canvas"></canvas>
+
     <div class="reveal-card" id="reveal-card">
-      <div class="reveal-eyebrow">The winner is</div>
+      <div class="wc-kicker">Winner of the draw</div>
       <div class="winner-name" id="winner-name">—</div>
-      <div class="gold-bag" id="gold-bag">
-        <div class="bag-body">
-          <div class="bag-tie"></div>
-          <div class="bag-symbol">₹</div>
-          <div class="bag-tag" id="bag-tag">—</div>
-        </div>
-        <div class="coin-pile">
-          <span class="coin"></span><span class="coin"></span><span class="coin"></span>
-          <span class="coin"></span><span class="coin"></span>
-        </div>
+      <div class="wc-rule"><span></span></div>
+
+      <div class="prize" id="gold-bag">
+        <svg class="bag-svg" viewBox="0 0 200 220" aria-hidden="true">
+          <defs>
+            <radialGradient id="bagGrad" cx="38%" cy="30%" r="80%">
+              <stop offset="0%" stop-color="#f8ecc0"/>
+              <stop offset="42%" stop-color="#dcb75f"/>
+              <stop offset="100%" stop-color="#8f6d22"/>
+            </radialGradient>
+            <linearGradient id="tieGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#eacd77"/>
+              <stop offset="1" stop-color="#a2791f"/>
+            </linearGradient>
+            <radialGradient id="coinGrad" cx="38%" cy="32%" r="75%">
+              <stop offset="0%" stop-color="#f6e6a6"/>
+              <stop offset="60%" stop-color="#d8b258"/>
+              <stop offset="100%" stop-color="#9a7526"/>
+            </radialGradient>
+          </defs>
+          <!-- coins at the base -->
+          <ellipse class="pcoin" cx="66" cy="196" rx="20" ry="9" fill="url(#coinGrad)" stroke="#7c5c18" stroke-width="1"/>
+          <ellipse class="pcoin" cx="132" cy="198" rx="22" ry="9" fill="url(#coinGrad)" stroke="#7c5c18" stroke-width="1"/>
+          <ellipse class="pcoin" cx="100" cy="203" rx="26" ry="10" fill="url(#coinGrad)" stroke="#7c5c18" stroke-width="1"/>
+          <!-- bag body -->
+          <path d="M58,86 C42,116 42,158 66,184 C82,201 118,201 134,184
+                   C158,158 158,116 142,86 C126,74 74,74 58,86 Z"
+                fill="url(#bagGrad)" stroke="#7c5c18" stroke-width="1.5"/>
+          <!-- soft highlight -->
+          <ellipse cx="82" cy="120" rx="16" ry="26" fill="#fff" opacity="0.16"/>
+          <!-- tie / neck -->
+          <path d="M70,84 C86,66 114,66 130,84 C122,92 118,96 116,100
+                   C110,92 90,92 84,100 C82,96 78,92 70,84 Z"
+                fill="url(#tieGrad)" stroke="#7c5c18" stroke-width="1"/>
+          <!-- knot -->
+          <ellipse cx="100" cy="70" rx="12" ry="8" fill="url(#tieGrad)" stroke="#7c5c18" stroke-width="1"/>
+          <!-- rupee emboss -->
+          <text x="100" y="156" text-anchor="middle" font-family="Georgia, serif"
+                font-size="52" font-weight="700" fill="#6a4e12" opacity="0.85">₹</text>
+        </svg>
+        <div class="bag-tag" id="bag-tag">—</div>
       </div>
-      <button type="button" class="btn btn-again" id="again-btn">Draw again</button>
+
+      <button type="button" class="btn btn-ghost btn-again" id="again-btn">Draw again</button>
     </div>
   </div>
-
-  <div class="money-layer" id="money-layer" aria-hidden="true"></div>
 
   <footer class="app-footer">A refined way to let chance decide</footer>
 

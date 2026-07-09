@@ -13,7 +13,7 @@
   var listEl = document.getElementById("names-list");
   var countLabel = document.getElementById("count-label");
   var clearBtn = document.getElementById("clear-btn");
-  var entryHint = document.getElementById("entry-hint");
+  var emptyState = document.getElementById("empty-state");
 
   var glassBox = document.getElementById("glass-box");
   var chitsHeap = document.getElementById("chits-heap");
@@ -31,7 +31,6 @@
   var goldBag = document.getElementById("gold-bag");
   var bagTag = document.getElementById("bag-tag");
   var againBtn = document.getElementById("again-btn");
-  var moneyLayer = document.getElementById("money-layer");
   var canvas = document.getElementById("confetti-canvas");
   var lightRays = document.getElementById("light-rays");
   var burstRing = document.getElementById("burst-ring");
@@ -82,9 +81,7 @@
 
   function updateControls() {
     var enough = names.length >= 2;
-    entryHint.textContent = enough
-      ? "Ready. Seal the box to begin."
-      : "Add at least 2 entrants to start the draw.";
+    emptyState.hidden = names.length > 0;
 
     fillBtn.disabled = !enough || busy;
     pickBtn.disabled = !enough || !chitsInBox || busy;
@@ -266,8 +263,8 @@
         glassBox.classList.add("open");
 
         setTimeout(function () {
-          // Phase 4 — a chit rises, unfolds, then bursts into the reveal
-          drawChit(winner, function () {
+          // Phase 4 — a sealed chit rises, then bursts straight into the reveal
+          drawChit(function () {
             showWinner(winner);
           });
         }, 520);
@@ -291,43 +288,35 @@
     });
   }
 
-  // Phase 4: a chit rises from the open box, holds, unfolds to show the name,
-  // then blasts outward — handing off to the celebration.
-  function drawChit(name, done) {
+  // Phase 4: a sealed chit rises from the open box, holds for suspense, then
+  // bursts outward — the name stays hidden until the reveal itself.
+  function drawChit(done) {
     stageStatus.textContent = "Drawing a chit…";
 
     var chit = document.createElement("div");
     chit.className = "draw-chit";
-    chit.innerHTML =
-      '<div class="dc-fold"></div>' +
-      '<div class="dc-label">The winner is</div>' +
-      '<div class="dc-name">' + esc(name) + "</div>";
+    chit.innerHTML = '<div class="dc-fold"></div><div class="dc-seal">★</div>';
     document.body.appendChild(chit);
     // eslint-disable-next-line no-unused-expressions
     chit.offsetHeight;
 
-    // rise & hover (folded — only initials-ish look, name hidden by fold line)
+    // rise & hover — kept sealed, name not shown
     chit.classList.add("rising");
 
     setTimeout(function () {
-      // suspense beat, then unfold to reveal the written name
-      stageStatus.textContent = "And the name is…";
-      chit.classList.remove("rising");
-      chit.classList.add("unfold");
-    }, 1050);
-
-    setTimeout(function () {
-      // blast the chit outward and hand off to the big reveal
+      stageStatus.textContent = "And the winner is…";
       boxSpotlight.classList.remove("on");
       glassBox.classList.remove("open");
-      chit.classList.remove("unfold");
+      chit.classList.remove("rising");
       chit.classList.add("blast");
       done();
       setTimeout(function () { chit.remove(); }, 420);
-    }, 1050 + 900);
+    }, 1250);
   }
 
   // ---- Winner reveal + celebration ----
+  // Slow build: rays + money first, the name materialises gradually, then the
+  // payoff (flash, burst rings, fireworks, gold bag) once the name has landed.
   function showWinner(name) {
     winnerNameEl.textContent = name;
     bagTag.textContent = name;
@@ -337,6 +326,7 @@
 
     // reset all reveal animation state
     revealCard.classList.remove("in");
+    winnerNameEl.classList.remove("slow-in");
     goldBag.classList.remove("drop");
     lightRays.classList.remove("on");
     burstRing.classList.remove("go");
@@ -345,23 +335,27 @@
     // eslint-disable-next-line no-unused-expressions
     overlay.offsetHeight;
 
-    // Bang — flash, rays, rings and the name punch in together
-    screenFlash.classList.add("go");
+    // Build-up: rays glow in, the money shower starts, the card fades in with
+    // the eyebrow, and the name begins its slow materialise.
     lightRays.classList.add("on");
-    burstRing.classList.add("go");
-    burstRing2.classList.add("go");
     revealCard.classList.add("in");
+    startCelebration();
 
-    startConfetti();
-    fireworkBurst();
-    startMoneyShower();
+    // slight beat, then the name reveals slowly (~1.9s)
+    setTimeout(function () { winnerNameEl.classList.add("slow-in"); }, 250);
 
-    // A couple of follow-up firework bursts for drama
-    setTimeout(fireworkBurst, 500);
-    setTimeout(fireworkBurst, 1000);
-
-    // Gold bag slams down after the name lands
-    setTimeout(function () { goldBag.classList.add("drop"); }, 520);
+    // Payoff — once the name has fully materialised
+    var PAYOFF = 250 + 1900;
+    setTimeout(function () {
+      screenFlash.classList.add("go");
+      burstRing.classList.add("go");
+      burstRing2.classList.add("go");
+      goldBag.classList.add("drop");
+      fireworkBurst();
+      setTimeout(fireworkBurst, 450);
+      setTimeout(fireworkBurst, 950);
+      setTimeout(fireworkBurst, 1500);
+    }, PAYOFF);
 
     stageStatus.textContent = name + " wins the draw.";
   }
@@ -371,7 +365,6 @@
     overlay.setAttribute("aria-hidden", "true");
     lightRays.classList.remove("on");
     stopConfetti();
-    moneyLayer.innerHTML = "";
     // reset box to its ready state
     glassBox.classList.remove("open", "charging", "shaking");
     boxSpotlight.classList.remove("on");
@@ -381,116 +374,145 @@
     updateControls();
   });
 
-  // ---- Money shower (emoji rain) ----
-  function startMoneyShower() {
-    moneyLayer.innerHTML = "";
-    var emojis = ["💵", "💰", "🪙", "💸", "💴", "💷"];
-    var total = 54;
-    for (var k = 0; k < total; k++) {
-      (function (k) {
-        setTimeout(function () {
-          if (!overlay.classList.contains("show")) return;
-          var s = document.createElement("span");
-          s.className = "money";
-          s.textContent = emojis[Math.floor(Math.random() * emojis.length)];
-          s.style.left = Math.random() * 100 + "vw";
-          s.style.fontSize = (1.2 + Math.random() * 1.6) + "rem";
-          var dur = 2.6 + Math.random() * 2.2;
-          s.style.animationDuration = dur + "s";
-          moneyLayer.appendChild(s);
-          setTimeout(function () { s.remove(); }, dur * 1000 + 200);
-        }, k * 90);
-      })(k);
-    }
-  }
-
-  // ---- Confetti + fireworks (canvas) ----
-  var confettiRunning = false;
-  var confettiParticles = [];
+  // ---- Celebration: confetti + gold-coin shower + firework sparks (canvas) ----
+  var celebrating = false;
+  var confetti = [];
+  var coins = [];                // falling, spinning gold coins (money shower)
   var sparks = [];               // firework spark particles (gravity + fade)
-  var confettiRaf = null;
+  var raf = null;
+  var coinTimer = null;
   var ctx = canvas.getContext("2d");
-  var PALETTE = ["#e7cd86", "#cb9a4f", "#9a7526", "#ece7db", "#c9b787", "#f5ecd0"];
+  var CONFETTI_COLS = ["#e7cd86", "#cb9a4f", "#9a7526", "#ece7db", "#c9b787", "#f5ecd0"];
 
   function sizeCanvas() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = window.innerWidth * dpr;
+    canvas.height = window.innerHeight * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
-  window.addEventListener("resize", sizeCanvas);
+  window.addEventListener("resize", function () { if (celebrating) sizeCanvas(); });
 
-  function startConfetti() {
+  function startCelebration() {
     sizeCanvas();
-    confettiParticles = [];
-    sparks = [];
-    for (var i = 0; i < 170; i++) {
-      confettiParticles.push({
-        x: Math.random() * canvas.width,
-        y: Math.random() * -canvas.height,
-        r: 4 + Math.random() * 6,
-        c: PALETTE[Math.floor(Math.random() * PALETTE.length)],
-        vy: 2 + Math.random() * 4,
-        vx: -1.5 + Math.random() * 3,
-        rot: Math.random() * Math.PI,
-        vr: -0.15 + Math.random() * 0.3
+    confetti = []; coins = []; sparks = [];
+    var W = window.innerWidth;
+    var H = window.innerHeight;
+
+    for (var i = 0; i < 150; i++) {
+      confetti.push({
+        x: Math.random() * W, y: Math.random() * -H,
+        r: 4 + Math.random() * 5,
+        c: CONFETTI_COLS[Math.floor(Math.random() * CONFETTI_COLS.length)],
+        vy: 2 + Math.random() * 3.5, vx: -1.2 + Math.random() * 2.4,
+        rot: Math.random() * Math.PI, vr: -0.14 + Math.random() * 0.28
       });
     }
-    if (!confettiRunning) {
-      confettiRunning = true;
-      loopConfetti();
+
+    celebrating = true;
+    if (!raf) loop();
+
+    // Continuously rain coins for the duration of the reveal.
+    spawnCoins(26);
+    coinTimer = setInterval(function () {
+      if (!celebrating) return;
+      if (coins.length < 60) spawnCoins(8);
+    }, 260);
+  }
+
+  function spawnCoins(n) {
+    var W = window.innerWidth;
+    for (var i = 0; i < n; i++) {
+      var r = 9 + Math.random() * 7;
+      coins.push({
+        x: Math.random() * W,
+        y: -20 - Math.random() * 200,
+        r: r,
+        vy: 2.4 + Math.random() * 2.6,
+        vx: -0.8 + Math.random() * 1.6,
+        phase: Math.random() * Math.PI * 2,     // spin phase (fakes 3D flip)
+        spin: 0.06 + Math.random() * 0.06,
+        tilt: -0.5 + Math.random()
+      });
     }
   }
 
-  // Emit a radial burst of sparks from a random point in the upper area.
+  // A radial burst of sparks from a point in the upper area.
   function fireworkBurst() {
-    if (!overlay.classList.contains("show")) return;
-    sizeCanvas();
-    var cx = canvas.width * (0.2 + Math.random() * 0.6);
-    var cy = canvas.height * (0.15 + Math.random() * 0.3);
-    var hue = PALETTE[Math.floor(Math.random() * PALETTE.length)];
-    var n = 46;
-    for (var i = 0; i < n; i++) {
-      var ang = (Math.PI * 2 * i) / n + Math.random() * 0.15;
+    if (!celebrating) return;
+    var W = window.innerWidth, H = window.innerHeight;
+    var cx = W * (0.2 + Math.random() * 0.6);
+    var cy = H * (0.14 + Math.random() * 0.26);
+    var hue = CONFETTI_COLS[Math.floor(Math.random() * CONFETTI_COLS.length)];
+    var count = 44;
+    for (var i = 0; i < count; i++) {
+      var ang = (Math.PI * 2 * i) / count + Math.random() * 0.15;
       var speed = 3 + Math.random() * 5;
       sparks.push({
         x: cx, y: cy,
-        vx: Math.cos(ang) * speed,
-        vy: Math.sin(ang) * speed,
-        c: hue,
-        life: 1,
-        decay: 0.012 + Math.random() * 0.02,
-        size: 2 + Math.random() * 2
+        vx: Math.cos(ang) * speed, vy: Math.sin(ang) * speed,
+        c: hue, life: 1, decay: 0.012 + Math.random() * 0.02,
+        size: 1.6 + Math.random() * 1.8
       });
     }
-    if (!confettiRunning) { confettiRunning = true; loopConfetti(); }
   }
 
-  function loopConfetti() {
+  function drawCoin(c) {
+    // width oscillates with the spin to imitate a coin flipping edge-on
+    var w = Math.abs(Math.cos(c.phase)) * c.r + 1.5;
+    ctx.save();
+    ctx.translate(c.x, c.y);
+    ctx.rotate(c.tilt * 0.35);
+    // rim
+    var g = ctx.createLinearGradient(-w, -c.r, w, c.r);
+    g.addColorStop(0, "#f4e2a0");
+    g.addColorStop(0.5, "#d3ac52");
+    g.addColorStop(1, "#916b1f");
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, w, c.r, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(120,88,24,0.7)";
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    // inner face detail only when the coin is fairly face-on
+    if (w > c.r * 0.55) {
+      ctx.strokeStyle = "rgba(120,88,24,0.45)";
+      ctx.beginPath();
+      ctx.ellipse(0, 0, w * 0.66, c.r * 0.66, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.fillStyle = "rgba(106,78,18,0.8)";
+      ctx.font = "700 " + (c.r * 0.95) + "px Georgia, serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("₹", 0, c.r * 0.06);
+    }
+    ctx.restore();
+  }
+
+  function loop() {
+    var H = window.innerHeight;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // falling confetti
-    confettiParticles.forEach(function (p) {
-      p.y += p.vy;
-      p.x += p.vx;
-      p.rot += p.vr;
-      if (p.y > canvas.height + 20) {
-        p.y = -20;
-        p.x = Math.random() * canvas.width;
-      }
+    confetti.forEach(function (p) {
+      p.y += p.vy; p.x += p.vx; p.rot += p.vr;
+      if (p.y > H + 20) { p.y = -20; p.x = Math.random() * window.innerWidth; }
       ctx.save();
-      ctx.translate(p.x, p.y);
-      ctx.rotate(p.rot);
+      ctx.translate(p.x, p.y); ctx.rotate(p.rot);
       ctx.fillStyle = p.c;
       ctx.fillRect(-p.r / 2, -p.r / 2, p.r, p.r * 0.6);
       ctx.restore();
     });
 
-    // firework sparks (gravity + fade)
+    for (var j = coins.length - 1; j >= 0; j--) {
+      var c = coins[j];
+      c.y += c.vy; c.x += c.vx; c.phase += c.spin;
+      if (c.y > H + 30) { coins.splice(j, 1); continue; }
+      drawCoin(c);
+    }
+
     for (var i = sparks.length - 1; i >= 0; i--) {
       var s = sparks[i];
-      s.x += s.vx;
-      s.y += s.vy;
-      s.vy += 0.06;       // gravity
-      s.vx *= 0.99;
+      s.x += s.vx; s.y += s.vy; s.vy += 0.06; s.vx *= 0.99;
       s.life -= s.decay;
       if (s.life <= 0) { sparks.splice(i, 1); continue; }
       ctx.save();
@@ -502,14 +524,14 @@
       ctx.restore();
     }
 
-    if (confettiRunning) confettiRaf = requestAnimationFrame(loopConfetti);
+    if (celebrating) raf = requestAnimationFrame(loop);
   }
 
   function stopConfetti() {
-    confettiRunning = false;
-    if (confettiRaf) cancelAnimationFrame(confettiRaf);
-    confettiParticles = [];
-    sparks = [];
+    celebrating = false;
+    if (raf) { cancelAnimationFrame(raf); raf = null; }
+    if (coinTimer) { clearInterval(coinTimer); coinTimer = null; }
+    confetti = []; coins = []; sparks = [];
     ctx.clearRect(0, 0, canvas.width, canvas.height);
   }
 
